@@ -3,13 +3,13 @@ const path = require("path");
 const express = require("express");
 const mercadopago = require("mercadopago");
 
-const mercadoPagoPublicKey = process.env.MERCADO_PAGO_SAMPLE_PUBLIC_KEY;
+const mercadoPagoPublicKey = 'APP_USR-352587ca-674b-4ae4-a348-8583ab39b4ac';
 if (!mercadoPagoPublicKey) {
   console.log("Error: public key not defined");
   process.exit(1);
 }
 
-const mercadoPagoAccessToken = process.env.MERCADO_PAGO_SAMPLE_ACCESS_TOKEN;
+const mercadoPagoAccessToken = 'APP_USR-7775327892346559-021414-6d72fde63f2eb92a6aebcc6cf007f02d-1683610490';
 if (!mercadoPagoAccessToken) {
   console.log("Error: access token not defined");
   process.exit(1);
@@ -45,13 +45,8 @@ app.post("/process_payment", (req, res) => {
     description: body.description,
     installments: Number(body.installments),
     payment_method_id: body.paymentMethodId,
-    issuer_id: body.issuerId,
     payer: {
       email: payer.email,
-      identification: {
-        type: payer.identification.docType,
-        number: payer.identification.docNumber,
-      },
     },
   };
 

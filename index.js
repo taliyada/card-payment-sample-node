@@ -45,13 +45,8 @@ app.post("/process_payment", (req, res) => {
     description: body.description,
     installments: Number(body.installments),
     payment_method_id: body.paymentMethodId,
-    issuer_id: body.issuerId,
     payer: {
       email: payer.email,
-      identification: {
-        type: payer.identification.docType,
-        number: payer.identification.docNumber,
-      },
     },
   };
 

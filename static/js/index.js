@@ -7,144 +7,58 @@ function loadCardForm() {
     const payButton = document.getElementById("form-checkout__submit");
     const validationErrorMessages= document.getElementById('validation-error-messages');
 
-    const form = {
-        id: "form-checkout",
-        cardholderName: {
-            id: "form-checkout__cardholderName",
-            placeholder: "Holder name",
-        },
-        cardholderEmail: {
-            id: "form-checkout__cardholderEmail",
-            placeholder: "E-mail",
-        },
-        cardNumber: {
-            id: "form-checkout__cardNumber",
-            placeholder: "Card number",
-            style: {
-                fontSize: "1rem"
-            },
-        },
-        expirationDate: {
-            id: "form-checkout__expirationDate",
-            placeholder: "MM/YYYY",
-            style: {
-                fontSize: "1rem"
-            },
-        },
-        securityCode: {
-            id: "form-checkout__securityCode",
-            placeholder: "Security code",
-            style: {
-                fontSize: "1rem"
-            },
-        },
-        installments: {
-            id: "form-checkout__installments",
-            placeholder: "Installments",
-        },
-        identificationType: {
-            id: "form-checkout__identificationType",
-        },
-        identificationNumber: {
-            id: "form-checkout__identificationNumber",
-            placeholder: "Identification number",
-        },
-        issuer: {
-            id: "form-checkout__issuer",
-            placeholder: "Issuer",
-        },
-    };
+    const form = document.getElementById('form-checkout');
+    form.addEventListener('submit', async function (event) {
+        event.preventDefault();
 
-    const cardForm = mercadopago.cardForm({
-        amount: productCost,
-        iframe: true,
-        form,
-        callbacks: {
-            onFormMounted: error => {
-                if (error)
-                    return console.warn("Form Mounted handling error: ", error);
-                console.log("Form mounted");
-            },
-            onSubmit: event => {
-                event.preventDefault();
-                document.getElementById("loading-message").style.display = "block";
+        const phoneNumber = document.getElementById('form-checkout__phoneNumberYape').value;
+        const otp = document.getElementById('form-checkout__otpYape').value;
+        const email = document.getElementById("form-checkout__cardholderEmail").value;
 
-                const {
-                    paymentMethodId,
-                    issuerId,
-                    cardholderEmail: email,
-                    amount,
-                    token,
-                    installments,
-                    identificationNumber,
-                    identificationType,
-                } = cardForm.getCardFormData();
+        //get token
+        const yape = mercadopago.yape({
+            otp, 
+            phoneNumber
+        });
+        const token = await yape.create();
 
-                fetch("/process_payment", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        token,
-                        issuerId,
-                        paymentMethodId,
-                        transactionAmount: Number(amount),
-                        installments: Number(installments),
-                        description: productDescription,
-                        payer: {
-                            email,
-                            identification: {
-                                type: identificationType,
-                                number: identificationNumber,
-                            },
-                        },
-                    }),
-                })
-                    .then(response => {
-                        return response.json();
-                    })
-                    .then(result => {
-                        if(!result.hasOwnProperty("error_message")) {
-                            document.getElementById("success-response").style.display = "block";
-                            document.getElementById("payment-id").innerText = result.id;
-                            document.getElementById("payment-status").innerText = result.status;
-                            document.getElementById("payment-detail").innerText = result.detail;
-                        } else {
-                            document.getElementById("error-message").textContent = result.error_message;
-                            document.getElementById("fail-response").style.display = "block";
-                        }
-                        
-                        $('.container__payment').fadeOut(500);
-                        setTimeout(() => { $('.container__result').show(500).fadeIn(); }, 500);
-                    })
-                    .catch(error => {
-                        alert("Unexpected error\n"+JSON.stringify(error));
-                    });
+        //post in payments
+        fetch("/process_payment", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
             },
-            onFetching: (resource) => {
-                console.log("Fetching resource: ", resource);
-                payButton.setAttribute('disabled', true);
-                return () => {
-                    payButton.removeAttribute("disabled");
-                };
-            },
-            onCardTokenReceived: (errorData, token) => {
-                if (errorData && errorData.error.fieldErrors.length !== 0) {
-                    errorData.error.fieldErrors.forEach(errorMessage => {
-                        alert(errorMessage);
-                    });
-                }
-
-                return token;
-            },
-            onValidityChange: (error, field) => {
-                const input = document.getElementById(form[field].id);
-                removeFieldErrorMessages(input, validationErrorMessages);
-                addFieldErrorMessages(input, validationErrorMessages, error);
-                enableOrDisablePayButton(validationErrorMessages, payButton);
+            body: JSON.stringify({
+                token: token.id,
+                paymentMethodId: 'yape',
+                transactionAmount: Number(productCost),
+                installments: 1,
+                description: productDescription,
+                payer: {
+                    email
+                },
+            })
+        })
+        .then(response => {
+            return response.json();
+        })
+        .then(result => {
+            if(!result.hasOwnProperty("error_message")) {
+                document.getElementById("success-response").style.display = "block";
+                document.getElementById("payment-id").innerText = result.id;
+                document.getElementById("payment-status").innerText = result.status;
+                document.getElementById("payment-detail").innerText = result.detail;
+            } else {
+                document.getElementById("error-message").textContent = result.error_message;
+                document.getElementById("fail-response").style.display = "block";
             }
-        },
+            
+            $('.container__payment').fadeOut(500);
+            setTimeout(() => { $('.container__result').show(500).fadeIn(); }, 500);
+        })
+        .catch(error => {
+            alert("Unexpected error\n"+JSON.stringify(error));
+        });
     });
 };
 
